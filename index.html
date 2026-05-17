@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SkillSpark | Discover Your Talent</title>
+    <title>SkillSpark | Interactive Learning Platform</title>
     
-    <!-- Google Fonts: Poppins -->
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-    
-    <!-- FontAwesome for Icons -->
+    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        /* --- CSS Variables & Reset --- */
+        /* --- CSS Variables (Dark/Light Mode) --- */
         :root {
             --bg-color: #0b0f19;
+            --bg-secondary: #151a28;
             --glass-bg: rgba(255, 255, 255, 0.05);
             --glass-border: rgba(255, 255, 255, 0.1);
             --primary-glow: #00f2fe;
@@ -22,6 +22,20 @@
             --accent: #ff0844;
             --text-main: #ffffff;
             --text-muted: #a0aabf;
+            --modal-bg: rgba(11, 15, 25, 0.95);
+        }
+
+        body.light-mode {
+            --bg-color: #f4f7f6;
+            --bg-secondary: #e2e8e4;
+            --glass-bg: rgba(0, 0, 0, 0.05);
+            --glass-border: rgba(0, 0, 0, 0.1);
+            --primary-glow: #0072ff;
+            --secondary-glow: #00c6ff;
+            --accent: #ff0844;
+            --text-main: #111111;
+            --text-muted: #444444;
+            --modal-bg: rgba(244, 247, 246, 0.95);
         }
 
         * {
@@ -30,407 +44,853 @@
             box-sizing: border-box;
             font-family: 'Poppins', sans-serif;
             scroll-behavior: smooth;
+            cursor: none; /* Hide default cursor for custom one */
         }
 
         body {
             background-color: var(--bg-color);
             color: var(--text-main);
             overflow-x: hidden;
-            position: relative;
+            transition: background-color 0.5s ease, color 0.5s ease;
         }
 
-        /* Animated Background Elements */
-        .bg-glow {
+        /* --- Scroll Progress Bar --- */
+        #scroll-progress {
             position: fixed;
-            width: 600px;
-            height: 600px;
-            background: radial-gradient(circle, rgba(79,172,254,0.15) 0%, rgba(0,0,0,0) 70%);
-            top: -200px;
-            left: -200px;
-            border-radius: 50%;
-            z-index: -1;
-            animation: float 10s infinite alternate;
-        }
-        
-        .bg-glow-2 {
-            position: fixed;
-            width: 500px;
-            height: 500px;
-            background: radial-gradient(circle, rgba(255,8,68,0.1) 0%, rgba(0,0,0,0) 70%);
-            bottom: -100px;
-            right: -100px;
-            border-radius: 50%;
-            z-index: -1;
-            animation: float 8s infinite alternate-reverse;
+            top: 0; left: 0; width: 0%; height: 3px;
+            background: linear-gradient(to right, var(--secondary-glow), var(--primary-glow));
+            z-index: 10000;
+            transition: width 0.1s;
         }
 
-        @keyframes float {
-            0% { transform: translate(0, 0); }
-            100% { transform: translate(50px, 50px); }
+        /* --- Loading Screen --- */
+        #loader {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: #0b0f19;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 99999;
+            transition: opacity 0.8s ease, transform 0.8s ease;
+        }
+        .loader-text {
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(to right, var(--primary-glow), var(--secondary-glow));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: pulse 1.5s infinite alternate;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.7; }
+            100% { transform: scale(1.1); opacity: 1; filter: drop-shadow(0 0 20px var(--primary-glow)); }
+        }
+
+        /* --- Custom Cursor --- */
+        .cursor-dot, .cursor-outline {
+            position: fixed;
+            top: 0; left: 0;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            z-index: 99998;
+            pointer-events: none;
+        }
+        .cursor-dot { width: 8px; height: 8px; background: var(--primary-glow); }
+        .cursor-outline {
+            width: 40px; height: 40px;
+            border: 2px solid var(--secondary-glow);
+            transition: width 0.2s, height 0.2s, background-color 0.2s;
+        }
+        .cursor-hover {
+            width: 60px; height: 60px;
+            background-color: rgba(0, 242, 254, 0.1);
+            border-color: var(--primary-glow);
+        }
+
+        /* --- Canvas Particles --- */
+        #particles-js {
+            position: fixed;
+            width: 100vw; height: 100vh;
+            top: 0; left: 0; z-index: -1;
+            pointer-events: none;
         }
 
         /* --- Typography & Utilities --- */
-        h1, h2, h3 { font-weight: 700; }
-        p { color: var(--text-muted); line-height: 1.6; }
-        
         .gradient-text {
             background: linear-gradient(to right, var(--primary-glow), var(--secondary-glow));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-
-        .section-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 100px 20px;
-        }
-
-        .section-title {
-            text-align: center;
-            font-size: 2.5rem;
-            margin-bottom: 50px;
-        }
-
-        /* --- Buttons --- */
+        .section-container { max-width: 1200px; margin: 0 auto; padding: 100px 20px; }
+        .section-title { text-align: center; font-size: 2.8rem; margin-bottom: 50px; font-weight: 800; }
+        
         .btn {
-            display: inline-block;
-            padding: 12px 28px;
-            border-radius: 30px;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            border: none;
+            display: inline-block; padding: 12px 28px; border-radius: 30px;
+            font-weight: 600; text-decoration: none; cursor: none; /* Use custom cursor */
+            transition: all 0.3s ease; border: none; outline: none;
         }
-
         .btn-primary {
             background: linear-gradient(45deg, var(--secondary-glow), var(--primary-glow));
-            color: #000;
-            box-shadow: 0 4px 15px rgba(0, 242, 254, 0.3);
+            color: #000; box-shadow: 0 4px 15px rgba(0, 242, 254, 0.3);
         }
-
         .btn-primary:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(0, 242, 254, 0.5);
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 25px rgba(0, 242, 254, 0.6);
         }
 
         /* --- Navbar --- */
         nav {
-            position: fixed;
-            top: 0;
-            width: 100%;
-            padding: 20px 0;
-            background: rgba(11, 15, 25, 0.8);
-            backdrop-filter: blur(10px);
-            z-index: 1000;
-            border-bottom: 1px solid var(--glass-border);
+            position: fixed; top: 0; width: 100%; padding: 15px 0;
+            background: var(--glass-bg); backdrop-filter: blur(15px);
+            z-index: 1000; border-bottom: 1px solid var(--glass-border);
         }
-
         .nav-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 20px;
+            max-width: 1200px; margin: 0 auto; display: flex;
+            justify-content: space-between; align-items: center; padding: 0 20px;
         }
-
-        .logo { font-size: 1.5rem; font-weight: 800; color: #fff; text-decoration: none; }
-        .nav-links a { color: #fff; text-decoration: none; margin-left: 20px; font-size: 0.9rem; transition: color 0.3s;}
+        .logo { font-size: 1.8rem; font-weight: 800; color: var(--text-main); text-decoration: none; }
+        .nav-links { display: flex; align-items: center; gap: 20px; }
+        .nav-links a { color: var(--text-main); text-decoration: none; font-weight: 600; transition: color 0.3s; }
         .nav-links a:hover { color: var(--primary-glow); }
+        .controls { display: flex; gap: 15px; }
+        .control-btn {
+            background: none; border: none; color: var(--text-main);
+            font-size: 1.2rem; cursor: none; transition: 0.3s;
+        }
+        .control-btn:hover { color: var(--primary-glow); transform: scale(1.2); }
+        .hamburger { display: none; background: none; border: none; color: var(--text-main); font-size: 1.5rem; cursor: none;}
 
-        /* --- Hero Section --- */
+        /* --- Hero Section & Typing --- */
         .hero {
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 0 20px;
-            margin-top: 50px;
+            height: 100vh; display: flex; align-items: center; justify-content: center;
+            text-align: center; padding: 0 20px; position: relative;
         }
+        .hero h1 { font-size: 4.5rem; margin-bottom: 20px; line-height: 1.2; }
+        .typewriter-container { font-size: 1.5rem; color: var(--text-muted); margin-bottom: 30px; height: 30px;}
+        .typewriter { border-right: 2px solid var(--primary-glow); animation: blink 0.7s infinite; }
+        @keyframes blink { 50% { border-color: transparent; } }
 
-        .hero h1 { font-size: 4rem; margin-bottom: 20px; line-height: 1.2; }
-        .hero p { font-size: 1.2rem; max-width: 600px; margin: 0 auto 30px; }
+        /* --- Stats Section --- */
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px; text-align: center; margin-top: -50px; padding-bottom: 50px;
+        }
+        .stat-box {
+            background: var(--glass-bg); padding: 30px; border-radius: 15px;
+            border: 1px solid var(--glass-border); backdrop-filter: blur(10px);
+        }
+        .stat-number { font-size: 2.5rem; font-weight: 800; color: var(--primary-glow); }
 
-        /* --- Problem & Solution Section --- */
-        .glass-panel {
-            background: var(--glass-bg);
-            backdrop-filter: blur(12px);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            padding: 40px;
-            margin-bottom: 30px;
-            transition: transform 0.3s ease;
+        /* --- Why Skills Matter --- */
+        .why-matter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; }
+        .matter-card {
+            background: var(--bg-secondary); padding: 30px; border-radius: 20px;
+            text-align: center; transition: 0.4s; border: 1px solid transparent;
         }
-        
-        .glass-panel:hover {
-            transform: translateY(-5px);
-            border-color: rgba(255,255,255,0.2);
-        }
-
-        .problem-solution-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-        }
+        .matter-card:hover { transform: translateY(-10px); border-color: var(--secondary-glow); }
+        .matter-card i { font-size: 3rem; color: var(--accent); margin-bottom: 20px; }
 
         /* --- Explore Interests (Cards) --- */
-        .cards-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 30px;
-        }
-
+        .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; }
         .interest-card {
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            padding: 30px;
-            text-align: center;
-            transition: all 0.4s ease;
-            position: relative;
-            overflow: hidden;
+            background: var(--glass-bg); border: 1px solid var(--glass-border);
+            border-radius: 20px; padding: 40px 30px; text-align: center;
+            transition: all 0.4s ease; position: relative; overflow: hidden;
+            backdrop-filter: blur(10px);
         }
-
         .interest-card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: -100%; width: 50%; height: 100%;
+            content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
             background: linear-gradient(to right, transparent, rgba(255,255,255,0.1), transparent);
-            transform: skewX(-20deg);
-            transition: 0.5s;
+            transform: skewX(-20deg); transition: 0.7s;
         }
-
         .interest-card:hover::before { left: 150%; }
         .interest-card:hover {
-            transform: translateY(-10px);
-            border-color: var(--primary-glow);
-            box-shadow: 0 10px 30px rgba(0, 242, 254, 0.1);
+            transform: translateY(-10px); border-color: var(--primary-glow);
+            box-shadow: 0 10px 40px rgba(0, 242, 254, 0.15);
         }
-
         .card-icon {
-            font-size: 3rem;
-            margin-bottom: 20px;
+            font-size: 3.5rem; margin-bottom: 20px;
             background: linear-gradient(45deg, var(--secondary-glow), var(--primary-glow));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
 
-        .interest-card h3 { margin-bottom: 15px; font-size: 1.5rem; }
-        .interest-card p { margin-bottom: 25px; font-size: 0.9rem; }
-
-        /* --- Roadmaps Section --- */
-        .roadmap-item {
-            display: flex;
-            align-items: center;
-            margin-bottom: 20px;
-            background: var(--glass-bg);
-            padding: 20px;
-            border-radius: 15px;
-            border-left: 4px solid var(--secondary-glow);
+        /* --- Interactive Roadmap Timeline --- */
+        .timeline { position: relative; max-width: 800px; margin: 0 auto; padding: 40px 0; }
+        .timeline::after {
+            content: ''; position: absolute; width: 4px; background: var(--glass-border);
+            top: 0; bottom: 0; left: 50%; margin-left: -2px; border-radius: 2px;
         }
-        .roadmap-item h4 { width: 150px; flex-shrink: 0; }
-
-        /* --- Motivation Section --- */
-        .motivation {
-            text-align: center;
-            background: linear-gradient(to right, rgba(11,15,25,0), rgba(79,172,254,0.1), rgba(11,15,25,0));
-            padding: 60px 20px;
-            border-top: 1px solid var(--glass-border);
-            border-bottom: 1px solid var(--glass-border);
+        .timeline-item { padding: 10px 40px; position: relative; width: 50%; box-sizing: border-box; }
+        .timeline-item:nth-child(odd) { left: 0; text-align: right; }
+        .timeline-item:nth-child(even) { left: 50%; text-align: left; }
+        .timeline-dot {
+            position: absolute; width: 20px; height: 20px; background: var(--primary-glow);
+            border-radius: 50%; top: 15px; box-shadow: 0 0 15px var(--primary-glow); z-index: 1;
         }
-        .quote { font-size: 1.8rem; font-style: italic; font-weight: 300; }
+        .timeline-item:nth-child(odd) .timeline-dot { right: -10px; }
+        .timeline-item:nth-child(even) .timeline-dot { left: -10px; }
+        .timeline-content {
+            padding: 20px; background: var(--glass-bg); border-radius: 15px;
+            border: 1px solid var(--glass-border); transition: 0.3s;
+        }
+        .timeline-content:hover { border-color: var(--secondary-glow); transform: scale(1.02); }
+
+        /* --- Modal System --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); backdrop-filter: blur(10px);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 10000; opacity: 0; visibility: hidden; transition: 0.4s;
+        }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        .modal-content {
+            background: var(--modal-bg); border: 1px solid var(--glass-border);
+            width: 90%; max-width: 700px; max-height: 85vh; overflow-y: auto;
+            border-radius: 20px; padding: 40px; position: relative;
+            transform: translateY(50px) scale(0.9); transition: 0.4s; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+        .modal-overlay.active .modal-content { transform: translateY(0) scale(1); }
+        .close-modal {
+            position: absolute; top: 20px; right: 20px; font-size: 1.5rem;
+            color: var(--text-main); background: none; border: none; cursor: none; transition: 0.3s;
+        }
+        .close-modal:hover { color: var(--accent); transform: rotate(90deg); }
+        .modal-body h3 { color: var(--primary-glow); margin: 20px 0 10px; border-bottom: 1px solid var(--glass-border); padding-bottom: 5px;}
+        .modal-body ul { margin-left: 20px; color: var(--text-muted); margin-bottom: 15px;}
+        .modal-body ul li { margin-bottom: 5px; }
+        .modal-body a { color: var(--secondary-glow); text-decoration: none; }
+        .modal-body a:hover { text-decoration: underline; }
+        .modal-quote { text-align: center; font-style: italic; color: var(--primary-glow); margin-top: 30px; font-size: 1.2rem; }
 
         /* --- Footer --- */
         footer {
-            text-align: center;
-            padding: 30px;
-            border-top: 1px solid var(--glass-border);
-            background: rgba(0,0,0,0.5);
+            background: var(--bg-secondary); padding: 50px 20px 20px; text-align: center; border-top: 1px solid var(--glass-border);
         }
-        .made-by { font-weight: 600; color: var(--primary-glow); }
+        .social-icons { margin: 20px 0; }
+        .social-icons a {
+            display: inline-block; width: 40px; height: 40px; line-height: 40px;
+            background: var(--glass-bg); border-radius: 50%; color: var(--text-main);
+            margin: 0 10px; font-size: 1.2rem; transition: 0.3s; border: 1px solid var(--glass-border);
+        }
+        .social-icons a:hover { background: var(--primary-glow); color: #000; transform: translateY(-5px); }
 
-        /* --- Scroll Animation Classes --- */
-        .hidden { opacity: 0; transform: translateY(30px); transition: all 0.8s ease-out; }
+        /* --- Scroll Animations --- */
+        .hidden { opacity: 0; transform: translateY(40px); transition: all 0.8s cubic-bezier(0.5, 0, 0, 1); }
         .show { opacity: 1; transform: translateY(0); }
 
         /* --- Responsive Design --- */
         @media (max-width: 768px) {
-            .hero h1 { font-size: 2.5rem; }
-            .problem-solution-grid { grid-template-columns: 1fr; }
-            .nav-links { display: none; /* Simplified for mobile */ }
-            .roadmap-item { flex-direction: column; text-align: left; align-items: flex-start; }
-            .roadmap-item h4 { margin-bottom: 10px; width: auto; }
+            * { cursor: auto !important; } /* Disable custom cursor on mobile */
+            .cursor-dot, .cursor-outline { display: none; }
+            .hero h1 { font-size: 2.8rem; }
+            .nav-links {
+                position: fixed; top: 70px; right: -100%; flex-direction: column;
+                background: var(--bg-secondary); width: 250px; height: 100vh;
+                padding-top: 50px; transition: 0.4s; border-left: 1px solid var(--glass-border);
+            }
+            .nav-links.nav-active { right: 0; }
+            .hamburger { display: block; }
+            .timeline::after { left: 20px; }
+            .timeline-item { width: 100%; padding-left: 50px; padding-right: 0; text-align: left !important; }
+            .timeline-item:nth-child(even), .timeline-item:nth-child(odd) { left: 0; }
+            .timeline-dot { left: 10px !important; }
+            .modal-content { padding: 25px; }
         }
     </style>
 </head>
 <body>
 
-    <!-- Background Animations -->
-    <div class="bg-glow"></div>
-    <div class="bg-glow-2"></div>
+    <!-- Loading Screen -->
+    <div id="loader">
+        <div class="loader-text">SkillSpark</div>
+    </div>
+
+    <!-- Scroll Progress Bar -->
+    <div id="scroll-progress"></div>
+
+    <!-- Custom Cursor -->
+    <div class="cursor-dot"></div>
+    <div class="cursor-outline"></div>
+
+    <!-- Background Canvas Particles -->
+    <canvas id="particles-js"></canvas>
 
     <!-- Navigation -->
     <nav>
         <div class="nav-content">
             <a href="#" class="logo">Skill<span class="gradient-text">Spark</span></a>
-            <div class="nav-links">
-                <a href="#about">About</a>
+            <div class="nav-links" id="nav-links">
+                <a href="#home">Home</a>
+                <a href="#why-matter">Why Skills</a>
                 <a href="#interests">Interests</a>
                 <a href="#roadmaps">Roadmaps</a>
-                <a href="#resources">Resources</a>
+            </div>
+            <div class="controls">
+                <button class="control-btn" id="theme-toggle" title="Toggle Theme"><i class="fa-solid fa-moon"></i></button>
+                <button class="control-btn" id="sound-toggle" title="Toggle Sound"><i class="fa-solid fa-volume-high"></i></button>
+                <button class="hamburger" id="hamburger"><i class="fa-solid fa-bars"></i></button>
             </div>
         </div>
     </nav>
 
     <!-- 1. Hero Section -->
-    <section class="hero hidden">
+    <section id="home" class="hero">
         <div>
             <h1>Discover Your Talent.<br><span class="gradient-text">Build Your Future.</span></h1>
-            <p>SkillSpark helps you find your passion and turn it into a powerhouse skill. Level up in Music, Tech, Design, and Content Creation.</p>
-            <a href="#interests" class="btn btn-primary">Start Exploring</a>
+            <div class="typewriter-container">
+                <span class="typewriter" id="typewriter-text"></span>
+            </div>
+            <a href="#interests" class="btn btn-primary interactive-element">Explore Platforms</a>
         </div>
     </section>
 
-    <!-- 6. Problem & Solution Section -->
-    <section id="about" class="section-container hidden">
-        <h2 class="section-title">Why <span class="gradient-text">SkillSpark?</span></h2>
-        <div class="problem-solution-grid">
-            <div class="glass-panel">
-                <h3><i class="fa-solid fa-triangle-exclamation" style="color: var(--accent); margin-right: 10px;"></i>The Problem</h3>
-                <p>Millions of students have immense hidden talents but are stuck in traditional routines. They lack proper guidance, confidence, and affordable roadmaps to turn their raw creativity into real-world, productive skills.</p>
+    <!-- Animated Counters -->
+    <section class="section-container" style="padding-top: 0;">
+        <div class="stats-grid hidden">
+            <div class="stat-box">
+                <div class="stat-number" data-target="5000">0</div>
+                <p>Students Inspired</p>
             </div>
-            <div class="glass-panel">
-                <h3><i class="fa-solid fa-lightbulb" style="color: var(--primary-glow); margin-right: 10px;"></i>The Solution</h3>
-                <p>SkillSpark acts as a launchpad. We curate top-tier resources, design beginner-to-advanced roadmaps, and build a creative tech aesthetic to inspire self-improvement and practical skill-building.</p>
+            <div class="stat-box">
+                <div class="stat-number" data-target="6">0</div>
+                <p>Core Categories</p>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number" data-target="150">0</div>
+                <p>Free Resources</p>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number" data-target="100">0</div>
+                <p>Career Paths</p>
             </div>
         </div>
     </section>
 
-    <!-- 2. Explore Interests -->
+    <!-- Why Skills Matter -->
+    <section id="why-matter" class="section-container hidden">
+        <h2 class="section-title">Why <span class="gradient-text">Skills Matter</span></h2>
+        <div class="why-matter-grid">
+            <div class="matter-card">
+                <i class="fa-solid fa-rocket"></i>
+                <h3>Career Growth</h3>
+                <p>Traditional education is just the start. Real-world technical and creative skills set you apart in the modern job market.</p>
+            </div>
+            <div class="matter-card">
+                <i class="fa-solid fa-brain"></i>
+                <h3>Creative Confidence</h3>
+                <p>Building projects from scratch develops problem-solving abilities and boosts your self-confidence to tackle big challenges.</p>
+            </div>
+            <div class="matter-card">
+                <i class="fa-solid fa-globe"></i>
+                <h3>Global Opportunities</h3>
+                <p>With skills like coding, editing, and designing, you can freelance, build startups, and work with clients across the globe.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 2. Explore Interests (Cards triggering Modals) -->
     <section id="interests" class="section-container">
-        <h2 class="section-title hidden">Explore Your <span class="gradient-text">Interests</span></h2>
+        <h2 class="section-title hidden">Discover Your <span class="gradient-text">Passion</span></h2>
         <div class="cards-grid">
             
-            <div class="interest-card hidden">
+            <div class="interest-card hidden interactive-element">
                 <i class="fa-solid fa-code card-icon"></i>
                 <h3>Coding</h3>
-                <p>Learn to build websites, apps, and software. Turn logic into magic and create the future of the web.</p>
-                <a href="#roadmaps" class="btn btn-primary" style="padding: 8px 20px; font-size: 0.9rem;">Learn More</a>
+                <p>Build the digital future with software and web development.</p>
+                <button class="btn btn-primary" onclick="openModal('coding')" style="margin-top:15px; padding: 8px 20px;">Learn More</button>
             </div>
 
-            <div class="interest-card hidden">
+            <div class="interest-card hidden interactive-element">
                 <i class="fa-solid fa-paint-brush card-icon"></i>
                 <h3>Designing</h3>
-                <p>Master UI/UX, graphic design, and 3D modeling. Bring your visual imagination to life.</p>
-                <a href="#roadmaps" class="btn btn-primary" style="padding: 8px 20px; font-size: 0.9rem;">Learn More</a>
+                <p>Master UI/UX, graphic design, and stunning visual art.</p>
+                <button class="btn btn-primary" onclick="openModal('designing')" style="margin-top:15px; padding: 8px 20px;">Learn More</button>
             </div>
 
-            <div class="interest-card hidden">
+            <div class="interest-card hidden interactive-element">
                 <i class="fa-solid fa-video card-icon"></i>
                 <h3>Video Editing</h3>
-                <p>Craft compelling stories through dynamic cuts, effects, and sound design. Rule the visual media.</p>
-                <a href="#roadmaps" class="btn btn-primary" style="padding: 8px 20px; font-size: 0.9rem;">Learn More</a>
+                <p>Craft compelling stories through dynamic visual media.</p>
+                <button class="btn btn-primary" onclick="openModal('video')" style="margin-top:15px; padding: 8px 20px;">Learn More</button>
             </div>
 
-            <div class="interest-card hidden">
+            <div class="interest-card hidden interactive-element">
                 <i class="fa-solid fa-music card-icon"></i>
                 <h3>Music</h3>
-                <p>From playing instruments to digital music production (DAWs), find your rhythm and produce beats.</p>
-                <a href="#roadmaps" class="btn btn-primary" style="padding: 8px 20px; font-size: 0.9rem;">Learn More</a>
+                <p>Produce beats, mix audio, and find your unique rhythm.</p>
+                <button class="btn btn-primary" onclick="openModal('music')" style="margin-top:15px; padding: 8px 20px;">Learn More</button>
             </div>
 
-            <div class="interest-card hidden">
+            <div class="interest-card hidden interactive-element">
                 <i class="fa-solid fa-gamepad card-icon"></i>
                 <h3>Gaming</h3>
-                <p>Go beyond playing. Learn game development, esports strategies, and streaming setups.</p>
-                <a href="#roadmaps" class="btn btn-primary" style="padding: 8px 20px; font-size: 0.9rem;">Learn More</a>
+                <p>Explore game development, streaming, and esports.</p>
+                <button class="btn btn-primary" onclick="openModal('gaming')" style="margin-top:15px; padding: 8px 20px;">Learn More</button>
             </div>
 
-            <div class="interest-card hidden">
+            <div class="interest-card hidden interactive-element">
                 <i class="fa-solid fa-camera card-icon"></i>
                 <h3>Content Creation</h3>
-                <p>Build a personal brand, master YouTube algorithms, and create engaging social media content.</p>
-                <a href="#roadmaps" class="btn btn-primary" style="padding: 8px 20px; font-size: 0.9rem;">Learn More</a>
+                <p>Build a brand, master algorithms, and engage audiences.</p>
+                <button class="btn btn-primary" onclick="openModal('content')" style="margin-top:15px; padding: 8px 20px;">Learn More</button>
             </div>
 
         </div>
     </section>
 
-    <!-- 3. Roadmaps Section -->
+    <!-- 3. Interactive Roadmap Timeline -->
     <section id="roadmaps" class="section-container hidden">
-        <h2 class="section-title">Beginner to Advanced <span class="gradient-text">Roadmaps</span></h2>
-        
-        <div class="roadmap-item">
-            <h4><i class="fa-solid fa-seedling"></i> Beginner</h4>
-            <p><strong>Discover:</strong> Learn the basics, familiarize yourself with free tools, and figure out what you genuinely enjoy doing without any pressure.</p>
-        </div>
-        
-        <div class="roadmap-item">
-            <h4><i class="fa-solid fa-leaf"></i> Intermediate</h4>
-            <p><strong>Build:</strong> Start creating personal projects. Build your first website, edit your first vlog, or produce your first music track.</p>
-        </div>
-        
-        <div class="roadmap-item">
-            <h4><i class="fa-solid fa-tree"></i> Advanced</h4>
-            <p><strong>Master:</strong> Learn industry-standard software, build a professional portfolio, and start freelancing or applying for internships.</p>
-        </div>
-    </section>
-
-    <!-- 4. Free Learning Resources -->
-    <section id="resources" class="section-container hidden">
-        <h2 class="section-title">Free Learning <span class="gradient-text">Resources</span></h2>
-        <div class="problem-solution-grid">
-            <div class="glass-panel" style="text-align: center;">
-                <h3>Tech & Design</h3>
-                <p style="margin-top: 15px;">
-                    <a href="https://www.freecodecamp.org/" style="color: var(--primary-glow); text-decoration: none; display: block; margin-bottom: 10px;">FreeCodeCamp (Coding)</a>
-                    <a href="https://www.figma.com/community/file/1512771800400751467/figma-free-crash-course-for-beginners-in-2025-ui-ux-design" style="color: var(--primary-glow); text-decoration: none; display: block; margin-bottom: 10px;">Figma Crash Courses (UI/UX)</a>
-                    <a href="https://www.blender.org/about/foundation/" style="color: var(--primary-glow); text-decoration: none; display: block;">Blender Foundation (3D)</a>
-                </p>
+        <h2 class="section-title">The <span class="gradient-text">Journey</span> to Mastery</h2>
+        <div class="timeline">
+            <div class="timeline-item interactive-element">
+                <div class="timeline-dot"></div>
+                <div class="timeline-content">
+                    <h3 style="color: var(--primary-glow); margin-bottom: 10px;">Phase 1: Explore & Learn</h3>
+                    <p>Start with free resources. Watch YouTube tutorials, read docs, and familiarize yourself with the basic tools of your chosen field.</p>
+                </div>
             </div>
-            <div class="glass-panel" style="text-align: center;">
-                <h3>Media & Creators</h3>
-                <p style="margin-top: 15px;">
-                    <a href="https://www.youtube.com/playlist?list=PLW-zSkCnZ-gA98O6OLuL4hGSN8LiPJ9vV" style="color: var(--secondary-glow); text-decoration: none; display: block; margin-bottom: 10px;">DaVinci Resolve Training (Video)</a>
-                    <a href="https://www.youtube.com/playlist?list=PLdcz8eJXW_H2jjrLgGdSO9xlcB3PjOS0Q" style="color: var(--secondary-glow); text-decoration: none; display: block; margin-bottom: 10px;">BandLab / Ableton Intro (Music)</a>
-                    <a href="https://theyoutubecreatoracademy.com/" style="color: var(--secondary-glow); text-decoration: none; display: block;">YouTube Creator Academy (Content)</a>
-                </p>
+            <div class="timeline-item interactive-element">
+                <div class="timeline-dot"></div>
+                <div class="timeline-content">
+                    <h3 style="color: var(--secondary-glow); margin-bottom: 10px;">Phase 2: Build & Create</h3>
+                    <p>Move away from tutorials. Build your first website, edit a short film, or produce a 1-minute track. Hands-on practice is key.</p>
+                </div>
+            </div>
+            <div class="timeline-item interactive-element">
+                <div class="timeline-dot"></div>
+                <div class="timeline-content">
+                    <h3 style="color: var(--accent); margin-bottom: 10px;">Phase 3: Portfolio & Network</h3>
+                    <p>Compile your best work. Create a Github, Behance, or YouTube channel. Connect with like-minded creators online.</p>
+                </div>
+            </div>
+            <div class="timeline-item interactive-element">
+                <div class="timeline-dot"></div>
+                <div class="timeline-content">
+                    <h3 style="color: var(--primary-glow); margin-bottom: 10px;">Phase 4: Launch Career</h3>
+                    <p>Start freelancing, apply for internships, or launch your own indie project/startup. Monetize your passion.</p>
+                </div>
             </div>
         </div>
     </section>
 
-    <!-- 5. Motivation Section -->
-    <section class="motivation hidden">
-        <div class="section-container" style="padding: 0;">
-            <i class="fa-solid fa-quote-left" style="font-size: 2rem; color: var(--primary-glow); margin-bottom: 20px;"></i>
-            <p class="quote">"Every expert was once a beginner. Don't let the fear of not being good enough stop you from starting."</p>
-            <p style="margin-top: 20px; font-weight: 600;">Ignite your spark today.</p>
-        </div>
-    </section>
-
-    <!-- 7. Footer -->
+    <!-- Footer -->
     <footer>
-        <p>&copy; 2026 SkillSpark. All rights reserved.</p>
-        <p style="margin-top: 10px; font-size: 0.9rem;">Made by <span class="made-by">Bhavesh</span></p>
+        <h2 style="margin-bottom: 15px; font-weight: 800;">Skill<span class="gradient-text">Spark</span></h2>
+        <p style="color: var(--text-muted);">Empowering the next generation of creators and innovators.</p>
+        <div class="social-icons interactive-element">
+            <a href="#"><i class="fa-brands fa-github"></i></a>
+            <a href="#"><i class="fa-brands fa-instagram"></i></a>
+            <a href="#"><i class="fa-brands fa-linkedin-in"></i></a>
+            <a href="#"><i class="fa-brands fa-discord"></i></a>
+        </div>
+        <p style="margin-top: 20px; font-size: 0.9rem; color: var(--text-muted);">&copy; 2026 SkillSpark. Designed for the Future.</p>
     </footer>
 
-    <!-- JavaScript for Smooth Scroll Animations -->
+    <!-- Dynamic Modal System -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-content">
+            <button class="close-modal interactive-element" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></button>
+            <div class="modal-body" id="modalBody">
+                <!-- Content injected via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Javascript Magic -->
     <script>
-        // Intersection Observer for scroll animations
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach((entry) => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('show');
-                }
-            });
-        }, {
-            threshold: 0.1 // Triggers when 10% of the element is visible
+        // --- 1. Loading Screen ---
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                const loader = document.getElementById('loader');
+                loader.style.opacity = '0';
+                loader.style.transform = 'translateY(-100%)';
+                setTimeout(() => loader.style.display = 'none', 800);
+            }, 1000); // 1s dramatic pause
         });
 
+        // --- 2. Custom Cursor ---
+        const cursorDot = document.querySelector('.cursor-dot');
+        const cursorOutline = document.querySelector('.cursor-outline');
+        
+        window.addEventListener('mousemove', (e) => {
+            const posX = e.clientX;
+            const posY = e.clientY;
+            
+            cursorDot.style.left = `${posX}px`;
+            cursorDot.style.top = `${posY}px`;
+            
+            // Slight delay for the outline for a smooth trailing effect
+            cursorOutline.animate({
+                left: `${posX}px`,
+                top: `${posY}px`
+            }, { duration: 250, fill: "forwards" });
+        });
+
+        // Add hover effect to interactive elements
+        document.querySelectorAll('a, button, .interactive-element').forEach(el => {
+            el.addEventListener('mouseenter', () => cursorOutline.classList.add('cursor-hover'));
+            el.addEventListener('mouseleave', () => cursorOutline.classList.remove('cursor-hover'));
+        });
+
+        // --- 3. Scroll Progress Bar & Reveal Animations ---
+        const progressBar = document.getElementById('scroll-progress');
         const hiddenElements = document.querySelectorAll('.hidden');
-        hiddenElements.forEach((el) => observer.observe(el));
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('show');
+                    // Trigger counter animation if it's the stats grid
+                    if(entry.target.classList.contains('stats-grid')) {
+                        runCounters();
+                    }
+                }
+            });
+        }, { threshold: 0.1 });
+
+        hiddenElements.forEach(el => observer.observe(el));
+
+        window.addEventListener('scroll', () => {
+            const scrollTop = document.documentElement.scrollTop;
+            const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const scrollPercent = (scrollTop / scrollHeight) * 100;
+            progressBar.style.width = scrollPercent + '%';
+        });
+
+        // --- 4. Animated Counters ---
+        let countersRun = false;
+        function runCounters() {
+            if(countersRun) return;
+            countersRun = true;
+            const counters = document.querySelectorAll('.stat-number');
+            const speed = 100;
+
+            counters.forEach(counter => {
+                const updateCount = () => {
+                    const target = +counter.getAttribute('data-target');
+                    const count = +counter.innerText;
+                    const inc = target / speed;
+
+                    if (count < target) {
+                        counter.innerText = Math.ceil(count + inc);
+                        setTimeout(updateCount, 20);
+                    } else {
+                        counter.innerText = target + (target > 10 ? "+" : "");
+                    }
+                };
+                updateCount();
+            });
+        }
+
+        // --- 5. Typing Animation ---
+        const words = ["Code Apps.", "Design Interfaces.", "Edit Films.", "Produce Music.", "Create Content."];
+        let wordIndex = 0;
+        let charIndex = 0;
+        let isDeleting = false;
+        const typewriterEl = document.getElementById("typewriter-text");
+
+        function type() {
+            const currentWord = words[wordIndex];
+            if (isDeleting) {
+                typewriterEl.innerText = currentWord.substring(0, charIndex - 1);
+                charIndex--;
+            } else {
+                typewriterEl.innerText = currentWord.substring(0, charIndex + 1);
+                charIndex++;
+            }
+
+            let typeSpeed = isDeleting ? 50 : 100;
+
+            if (!isDeleting && charIndex === currentWord.length) {
+                typeSpeed = 2000; // Pause at end of word
+                isDeleting = true;
+            } else if (isDeleting && charIndex === 0) {
+                isDeleting = false;
+                wordIndex = (wordIndex + 1) % words.length;
+                typeSpeed = 500; // Pause before new word
+            }
+
+            setTimeout(type, typeSpeed);
+        }
+        setTimeout(type, 1500); // Start after loader
+
+        // --- 6. Mobile Hamburger Menu ---
+        const hamburger = document.getElementById('hamburger');
+        const navLinks = document.getElementById('nav-links');
+        hamburger.addEventListener('click', () => {
+            navLinks.classList.toggle('nav-active');
+            playSound();
+        });
+        document.querySelectorAll('.nav-links a').forEach(link => {
+            link.addEventListener('click', () => {
+                navLinks.classList.remove('nav-active');
+            });
+        });
+
+        // --- 7. Theme Toggle ---
+        const themeToggle = document.getElementById('theme-toggle');
+        const icon = themeToggle.querySelector('i');
+        themeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('light-mode');
+            if(document.body.classList.contains('light-mode')) {
+                icon.classList.replace('fa-moon', 'fa-sun');
+            } else {
+                icon.classList.replace('fa-sun', 'fa-moon');
+            }
+            playSound();
+        });
+
+        // --- 8. Sound System (Web Audio API) ---
+        let soundEnabled = true;
+        const soundToggle = document.getElementById('sound-toggle');
+        const soundIcon = soundToggle.querySelector('i');
+        
+        soundToggle.addEventListener('click', () => {
+            soundEnabled = !soundEnabled;
+            if(soundEnabled) {
+                soundIcon.classList.replace('fa-volume-xmark', 'fa-volume-high');
+                playSound(); // Play a test sound
+            } else {
+                soundIcon.classList.replace('fa-volume-high', 'fa-volume-xmark');
+            }
+        });
+
+        // Create a soft UI "pop/click" sound programmatically
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound() {
+            if(!soundEnabled) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(800, audioCtx.currentTime); // high pitch
+            oscillator.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.1); // drop
+            
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); // low volume
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1); // fade out
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.1);
+        }
+
+        // Attach sound to all buttons and links
+        document.querySelectorAll('a, button').forEach(el => {
+            el.addEventListener('mousedown', playSound);
+        });
+
+        // --- 9. Modal System Data & Logic ---
+        const modalData = {
+            coding: {
+                title: "Coding & Development <i class='fa-solid fa-code'></i>",
+                intro: "Programming is the closest thing we have to magic. You type text, and computers build entire worlds.",
+                skills: ["Logical & Analytical Thinking", "Problem Solving", "Syntax Mastery (HTML, CSS, JS)"],
+                roadmap: ["Frontend: HTML/CSS/JS", "Frameworks: React or Vue", "Backend: Node.js or Python", "Database: SQL or MongoDB"],
+                resources: [
+                    {name: "FreeCodeCamp", url: "https://www.freecodecamp.org/"},
+                    {name: "Codecademy", url: "https://www.codecademy.com/"},
+                    {name: "MDN Web Docs", url: "https://developer.mozilla.org/"}
+                ],
+                career: "Software Engineer, Full-Stack Developer, App Creator.",
+                benefits: "Massive global demand, highly lucrative salaries, and the ability to work from anywhere in the world.",
+                tools: "VS Code, GitHub, Vercel, CodePen.",
+                motivation: "\"First, solve the problem. Then, write the code.\" – John Johnson"
+            },
+            designing: {
+                title: "UI/UX & Design <i class='fa-solid fa-paint-brush'></i>",
+                intro: "Design is not just what it looks like; design is how it works. Shape the user experience of the internet.",
+                skills: ["Color Theory & Typography", "User Empathy", "Wireframing & Prototyping"],
+                roadmap: ["Learn UI Principles", "Master Figma", "Study User Experience (UX)", "Build Case Studies"],
+                resources: [
+                    {name: "Figma Community", url: "https://www.figma.com/community"},
+                    {name: "Google UX Course", url: "https://grow.google/uxdesign/"},
+                    {name: "Behance Inspiration", url: "https://www.behance.net/"}
+                ],
+                career: "Product Designer, UI/UX Designer, Art Director.",
+                benefits: "Blend creativity with tech, shape brand identities, and visually impact millions of users.",
+                tools: "Figma, Adobe XD, Photoshop, Spline (3D).",
+                motivation: "\"Design is intelligence made visible.\" – Alina Wheeler"
+            },
+            video: {
+                title: "Video Editing <i class='fa-solid fa-video'></i>",
+                intro: "Editors are the unseen directors. You dictate the pace, emotion, and story of every visual piece.",
+                skills: ["Storytelling", "Timing & Pacing", "Color Grading & Sound Design"],
+                roadmap: ["Learn Basic Cuts", "Master Audio Sync", "Learn Color Correction", "Advanced VFX & Motion Graphics"],
+                resources: [
+                    {name: "Blackmagic DaVinci Training", url: "https://www.blackmagicdesign.com/products/davinciresolve/training"},
+                    {name: "Skillshare Tutorials", url: "https://www.skillshare.com/"},
+                    {name: "YouTube (Finzar, Ali Abdaal)", url: "https://www.youtube.com/@finzar"}
+                ],
+                career: "Film Editor, YouTube Editor, Motion Graphics Artist.",
+                benefits: "Huge demand from content creators and brands, creative freedom, and storytelling impact.",
+                tools: "DaVinci Resolve (Free), Premiere Pro, After Effects, CapCut.",
+                motivation: "\"Film editing is now something almost everyone can do at a simple level and enjoy it, but to take it to a higher level requires the same dedication as learning how to play the violin.\" – Walter Murch"
+            },
+            music: {
+                title: "Music Production <i class='fa-solid fa-music'></i>",
+                intro: "Turn your emotions into sound waves. Music production blends artistic expression with technical software engineering.",
+                skills: ["Rhythm & Melody", "Basic Music Theory", "Audio Mixing & EQ"],
+                roadmap: ["Understand Beats/Tempo", "Learn a DAW interface", "Midi Composing", "Mixing & Mastering basics"],
+                resources: [
+                    {name: "BandLab (Free Browser DAW)", url: "https://www.bandlab.com/"},
+                    {name: "SoundGym (Ear Training)", url: "https://www.soundgym.co/"},
+                    {name: "Ableton Learning Center", url: "https://www.ableton.com/en/live/learn-live/"}
+                ],
+                career: "Music Producer, Audio Engineer, Game Audio Designer.",
+                benefits: "Ultimate creative outlet, passive income from streams, licensing to films/games.",
+                tools: "FL Studio, Ableton Live, Logic Pro, BandLab.",
+                motivation: "\"Music is what feelings sound like.\" – Anonymous"
+            },
+            gaming: {
+                title: "Gaming & Esports <i class='fa-solid fa-gamepad'></i>",
+                intro: "Gaming is no longer just a hobby; it's a multi-billion dollar entertainment industry.",
+                skills: ["Strategic Thinking", "Reflexes & Hand-Eye Coordination", "Community Building"],
+                roadmap: ["Pick a niche (Dev vs Pro vs Streamer)", "Master a specific engine or game", "Network in Discord communities", "Produce content/Join tournaments"],
+                resources: [
+                    {name: "Unity Learn", url: "https://learn.unity.com/"},
+                    {name: "Twitch Creator Camp", url: "https://www.twitch.tv/creatorcamp"},
+                    {name: "ProGuides", url: "https://www.proguides.com/"}
+                ],
+                career: "Game Developer, Esports Athlete, QA Tester, Streamer.",
+                benefits: "Turn your passion into a profession, build tight-knit global communities.",
+                tools: "Unity / Unreal Engine, OBS Studio, Discord.",
+                motivation: "\"We don't stop playing because we grow old; we grow old because we stop playing.\" – George Bernard Shaw"
+            },
+            content: {
+                title: "Content Creation <i class='fa-solid fa-camera'></i>",
+                intro: "Attention is the new currency. Creators are the modern-day media companies.",
+                skills: ["Scriptwriting", "Charisma/On-Camera Presence", "Understanding Algorithms"],
+                roadmap: ["Find your niche", "Write scripts & practice delivery", "Learn basic editing & thumbnails", "Consistency & Analytics"],
+                resources: [
+                    {name: "YouTube Creator Academy", url: "https://creatoracademy.youtube.com/"},
+                    {name: "HubSpot Marketing Hub", url: "https://academy.hubspot.com/"},
+                    {name: "Canva Design School", url: "https://www.canva.com/designschool/"}
+                ],
+                career: "YouTuber, Social Media Manager, Brand Strategist.",
+                benefits: "Build a massive personal brand, gain sponsorship leverage, and control your own schedule.",
+                tools: "Notion (Scripting), Camera/Smartphone, Canva (Thumbnails).",
+                motivation: "\"Don't wait for inspiration. It comes while working.\" – Henri Matisse"
+            }
+        };
+
+        const modalOverlay = document.getElementById('modalOverlay');
+        const modalBody = document.getElementById('modalBody');
+
+        function openModal(category) {
+            playSound();
+            const data = modalData[category];
+            
+            // Build Resources HTML
+            let resourcesHTML = data.resources.map(res => `<li><i class="fa-solid fa-link" style="color:var(--secondary-glow); margin-right:8px;"></i><a href="${res.url}" target="_blank">${res.name}</a></li>`).join('');
+            
+            // Build Skills & Roadmap HTML
+            let skillsHTML = data.skills.map(skill => `<li><i class="fa-solid fa-check" style="color:var(--accent); margin-right:8px;"></i>${skill}</li>`).join('');
+            let roadmapHTML = data.roadmap.map((step, idx) => `<li><strong>Step ${idx+1}:</strong> ${step}</li>`).join('');
+
+            modalBody.innerHTML = `
+                <h2 style="font-size: 2rem; margin-bottom: 10px;">${data.title}</h2>
+                <p style="font-size: 1.1rem; color: var(--text-muted); margin-bottom: 25px;">${data.intro}</p>
+                
+                <h3><i class="fa-solid fa-bolt"></i> Key Skills Needed</h3>
+                <ul style="list-style:none;">${skillsHTML}</ul>
+                
+                <h3><i class="fa-solid fa-map-location-dot"></i> Beginner Roadmap</h3>
+                <ul style="list-style:none;">${roadmapHTML}</ul>
+                
+                <h3><i class="fa-solid fa-gift"></i> Free Resources</h3>
+                <ul style="list-style:none;">${resourcesHTML}</ul>
+                
+                <h3><i class="fa-solid fa-briefcase"></i> Career & Benefits</h3>
+                <p><strong>Careers:</strong> ${data.career}</p>
+                <p style="margin-top:5px;"><strong>Why Learn:</strong> ${data.benefits}</p>
+                
+                <h3><i class="fa-solid fa-toolbox"></i> Top Tools</h3>
+                <p>${data.tools}</p>
+                
+                <p class="modal-quote">${data.motivation}</p>
+            `;
+            
+            modalOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        }
+
+        function closeModal() {
+            playSound();
+            modalOverlay.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+
+        // Close modal on outside click
+        modalOverlay.addEventListener('click', (e) => {
+            if(e.target === modalOverlay) closeModal();
+        });
+
+        // --- 10. Canvas Background Particles ---
+        const canvas = document.getElementById("particles-js");
+        const ctx = canvas.getContext("2d");
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let particlesArray = [];
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2 + 0.5;
+                this.speedX = Math.random() * 1 - 0.5;
+                this.speedY = Math.random() * 1 - 0.5;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.size > 0.2) this.size -= 0.005; // shrinking effect
+                
+                // Bounce off edges
+                if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+                if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+            }
+            draw() {
+                ctx.fillStyle = "rgba(0, 242, 254, 0.5)"; // Match primary glow
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function initParticles() {
+            particlesArray = [];
+            let numberOfParticles = (canvas.width * canvas.height) / 9000;
+            for (let i = 0; i < numberOfParticles; i++) {
+                particlesArray.push(new Particle());
+            }
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < particlesArray.length; i++) {
+                particlesArray[i].update();
+                particlesArray[i].draw();
+                // Respawn small particles
+                if(particlesArray[i].size <= 0.2) {
+                    particlesArray[i] = new Particle();
+                }
+            }
+            requestAnimationFrame(animateParticles);
+        }
+
+        window.addEventListener("resize", () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            initParticles();
+        });
+
+        initParticles();
+        animateParticles();
     </script>
 </body>
 </html>
